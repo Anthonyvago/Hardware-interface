@@ -1,12 +1,30 @@
 /**
- * @file ServoDriver.hpp
+ * @file SerialServoCommunication.hpp
  * @author Anthony Vágó (A.Vago@student.han.nl)
- * @brief 
+ * @brief
  * @version 0.1
- * @date 2023-06-12
- * 
+ * @date 2023-06-13
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 
-// Don't know yet how the communication works
+#include <boost/asio.hpp>
+#include <iostream>
+
+using namespace std;
+
+class SerialServoCommunication {
+public:
+  SerialServoCommunication(const string &pathToDevice);
+
+  ~SerialServoCommunication() = default;
+
+  void sendSerialMsg(const string &serialMsg);
+
+  void sendSerialMsg(const ostringstream &serialMsg);
+
+private:
+  boost::asio::io_service ioService_;
+  boost::asio::serial_port serial_;
+};
