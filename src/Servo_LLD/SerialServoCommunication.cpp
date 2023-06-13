@@ -11,6 +11,8 @@
 
 #include "Servo_LLD/SerialServoCommunication.hpp"
 
+using namespace std;
+
 SerialServoCommunication::SerialServoCommunication(const string &pathToDevice)
     : ioService_(), serial_(ioService_, pathToDevice) {
   serial.set_option(boost::asio::serial_port_base::baud_rate(9600));
