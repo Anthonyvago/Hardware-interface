@@ -23,7 +23,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(Boost REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/setRobotArmState.msg"
+  "msg/SetRobotArmState.msg"
   "msg/SetServos.msg"
  )
 
