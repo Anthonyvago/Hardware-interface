@@ -9,24 +9,25 @@
  *
  */
 
-#include "RobotArmDriver.hpp"
+#include "Robot_arm_HLD/RobotArmDriver.hpp"
 
 #include "Servo_LLD/ServoDriver.hpp"
+#include <rclcpp/rclcpp.hpp>
 
 using namespace std;
 
 RobotArmDriver::RobotArmDriver()
-    : Node("RobotArmDriver"), servoDriver("/dev/ttyUSB0"), curState(PARK),
-      servoActivationTimes(servoDriver.getServoCount(), 0)
+    : Node("RobotArmDriver"), servoDriver_("/dev/ttyUSB0"), curState_(PARK),
+      servoActivationTimes_(servoDriver_.getServoCount(), 0)
 {
 
   timer_ =
       this->create_wall_timer(100ms, bind(&RobotArmDriver::runQueue, this));
   servoSub_ = this->create_subscription<hardware_interface::msg::SetServos>(
-      "RobotArmDriver", 10, bind(&RobotArmDriver::setServos, this, _1));
+      "RobotArmDriver", 10, bind(&RobotArmDriver::setServos, this, placeholders::_1));
   stateSub_ =
-      this->create_subscription<hardware_interface::msg::setRobotArmState>(
-          "RobotArmDriver", 10, bind(&RobotArmDriver::setState, this, _1));
+      this->create_subscription<hardware_interface::msg::SetRobotArmState>(
+          "RobotArmDriver", 10, bind(&RobotArmDriver::setRobotArmState, this, placeholders::_1));
 
   // Set the initial robot arm position:
   vector<uint16_t> servos = {0, 1, 2, 3, 4, 5};
@@ -36,31 +37,10 @@ RobotArmDriver::RobotArmDriver()
   // Convert shared pointer from servoEvent(struct) to shared pointer from Event
   // (struct):
   shared_ptr<EventServo> servoEvent(new EventServo(SERVO, servos, degrees, times));
-  eventsQueue.push(dynamic_pointer_cast<Event>(servoEvent));
+  eventsQueue_.push(dynamic_pointer_cast<Event>(servoEvent));
 }
 
 RobotArmDriver::~RobotArmDriver() {}
-
-void RobotArmDriver::setServos(
-    const hardware_interface::msg::SetServos::SharedPtr msg)
-{
-  if (curState == EMERGENCY_STOP)
-  {
-    RCLCPP_WARN(this->get_logger(),
-                "Cannot move servos while current state is emergency stop!");
-    return;
-  }
-
-  vector<uint16_t> newServos = msg->servos;
-  vector<int16_t> newDegrees = msg->degrees;
-  vector<uint16_t> newTimes = msg->times;
-
-  shared_ptr<EventServo> servoEvent(
-      new EventServo(SERVO, newServos, newDegrees, newTimes));
-
-  // Add to queue:
-  eventsQueue.push(dynamic_pointer_cast<Event>(servoEvent));
-}
 
 uint64_t calcServoDuration(int16_t newPos, int16_t oldPos)
 {
@@ -78,38 +58,41 @@ bool isSafe(float shoulderPos, float elbowPos, float wristPos)
   float lijn_G = 85.725f;
   float lijn_F = 107.95f;
   float lijn_P = 95.25f;
-  float theta_1 = shoulder_angle;
-  float theta_2 = elbow_angle;
-  float theta_3 = wrist_angle;
+  float theta_1 = shoulderPos;
+  float theta_2 = elbowPos;
+  float theta_3 = wristPos;
   float hoek_A2 = 90 - theta_1;
   float hoek_B3 = 180 - hoek_A2;
   float hoek_B2 = 180 - theta_2;
-  float lijn_C = lijn_F * cosf(toRadian(hoek_B3 + hoek_B2));
-  float hoek_C1 = toDegree(asinf(lijn_C / lijn_F));
+  float lijn_C = lijn_F * cosf(toRadians(hoek_B3 + hoek_B2));
+  float hoek_C1 = toDegrees(asinf(lijn_C / lijn_F));
   float hoek_C3 = 180 - 90 - hoek_C1 - theta_3;
-  float result = ((lijn_P * tanf(toRadian(hoek_A2))) -
-                  (lijn_F * cosf(toRadian(hoek_B3 + hoek_B2)))) -
-                 (lijn_G * cosf(toRadian(hoek_C3)));
+  float result = ((lijn_P * tanf(toRadians(hoek_A2))) -
+                  (lijn_F * cosf(toRadians(hoek_B3 + hoek_B2)))) -
+                 (lijn_G * cosf(toRadians(hoek_C3)));
   result = abs(result);
   return result > 0.0f;
 }
 
-void RobotArm::setState(
-    const hardware_interface::msg::SetState::SharedPtr msg)
+void RobotArmDriver::setServos(
+    const hardware_interface::msg::SetServos::SharedPtr msg)
 {
-  if (curState == EMERGENCY_STOP)
+  if (curState_ == EMERGENCY_STOP)
   {
     RCLCPP_WARN(this->get_logger(),
-                "Cannot change state while current state is emegency stop!");
+                "Cannot change state while current state is emergency stop!");
     return;
   }
 
-  RobotArmState newState = msg->state;
-
-  shared_ptr<EventState> stateEvent(new EventState(STATE, newState));
+  vector<uint16_t> servoVector = msg->servos;
+  vector<int16_t> degreeVector = msg->degrees;
+  vector<uint16_t> timesVector = msg->times;
+  // Convert shared pointer from servoEvent(struct) to shared pointer from
+  // Event (struct):
+  shared_ptr<EventServo> servoEvent(new EventServo(SERVO, servoVector, degreeVector, timesVector));
 
   // Add to queue:
-  eventsQueue.push(dynamic_pointer_cast<Event>(stateEvent));
+  eventsQueue_.push(dynamic_pointer_cast<Event>(servoEvent));
 }
 
 void RobotArmDriver::setRobotArmState(
@@ -118,107 +101,115 @@ void RobotArmDriver::setRobotArmState(
   RobotArmState newState = static_cast<RobotArmState>(msg->state);
 
   // Check if the "old" state was the emegency stop:
-  if (curState == EMERGENCY_STOP)
+  if (curState_ == EMERGENCY_STOP)
   {
     // Check if the new state is the emegency stop, so robot arm is still in the
     // emergency state:
     if (newState == EMERGENCY_STOP)
     {
-      RCLCPP(this->get_logger(), "Emergency stop was already engaged!");
+      RCLCPP_INFO(this->get_logger(), "Emergency stop was already engaged!");
     }
     // Check if the new state is not the emegency stop, so robot arm is exiting
     // the emegency stop state:
     else
     {
-      RCLCPP(this->get_logger(), "Disengaging emergency stop!");
-      servoDriver.disengageEmergencyStop();
+      RCLCPP_INFO(this->get_logger(), "Disengaging emergency stop!");
+      servoDriver_.disengageEmergencyStop();
     }
   }
 
   switch (newState)
   {
-  case READY:
-    RCLCPP(this->get_logger(), "Going into READY state...");
+    case READY:
+    {
+      RCLCPP_INFO(this->get_logger(), "Going into READY state...");
 
-    // Set READY positions:
-    vector<uint16_t> servos{0, 1, 2, 3, 4, 5};
-    vector<int16_t> degrees{0, -30, 135, 0, 0, 0};
-    vector<uint16_t> times{2000, 2000, 2000, 2000, 2000, 2000};
+      // Set READY positions:
+      vector<uint16_t> servos{0, 1, 2, 3, 4, 5};
+      vector<int16_t> degrees{0, -30, 135, 0, 0, 0};
+      vector<uint16_t> times{2000, 2000, 2000, 2000, 2000, 2000};
 
-    // Convert shared pointer from servoEvent(struct) to shared pointer from
-    // Event (struct):
-    shared_ptr<EventServo> servoEvent(new EventServo(SERVO, servos, degrees, times));
+      // Convert shared pointer from servoEvent(struct) to shared pointer from
+      // Event (struct):
+      shared_ptr<EventServo> servoEvent(new EventServo(SERVO, servos, degrees, times));
 
-    // Add to queue:
-    eventsQueue.push(dynamic_pointer_cast<Event>(servoEvent));
-    break;
-  case PARK:
-    RCLCPP(this->get_logger(), "Going into PARK state...");
+      // Add to queue:
+      eventsQueue_.push(dynamic_pointer_cast<Event>(servoEvent));
+      break;
+    }
+    case PARK:
+    {
+      RCLCPP_INFO(this->get_logger(), "Going into PARK state...");
 
-    // Set PARK positions:
-    vector<uint16_t> servos{0, 1, 2, 3, 4, 5};
-    vector<int16_t> degrees{0, -30, 135, 42, 0, 0};
-    vector<uint16_t> times{2000, 2000, 2000, 2000, 2000, 2000};
+      // Set PARK positions:
+      vector<uint16_t> servos{0, 1, 2, 3, 4, 5};
+      vector<int16_t> degrees{0, -30, 135, 42, 0, 0};
+      vector<uint16_t> times{2000, 2000, 2000, 2000, 2000, 2000};
 
-    // Convert shared pointer from servoEvent(struct) to shared pointer from
-    // Event (struct):
-    shared_ptr<EventServo> servoEvent(
-        new EventServo(SERVO, servos, degrees, times));
+      // Convert shared pointer from servoEvent(struct) to shared pointer from
+      // Event (struct):
+      shared_ptr<EventServo> servoEvent(
+          new EventServo(SERVO, servos, degrees, times));
 
-    // Add to queue:
-    eventsQueue.push(dynamic_pointer_cast<Event>(servoEvent));
-    break;
-  case STRAIGHT_UP:
-    RCLCPP(this->get_logger(), "Going into STRAIGHT_UP state...");
+      // Add to queue:
+      eventsQueue_.push(dynamic_pointer_cast<Event>(servoEvent));
+      break;
+    }
+    case STRAIGHT_UP:
+    {
+      RCLCPP_INFO(this->get_logger(), "Going into STRAIGHT_UP state...");
 
-    // Set STRAIGHT_UP positions:
-    vector<uint16_t> servos{0, 1, 2, 3, 4, 5};
-    vector<int16_t> degrees{0, 0, 0, 0, 0, 0};
-    vector<uint16_t> times{2000, 2000, 2000, 2000, 2000, 2000};
+      // Set STRAIGHT_UP positions:
+      vector<uint16_t> servos{0, 1, 2, 3, 4, 5};
+      vector<int16_t> degrees{0, 0, 0, 0, 0, 0};
+      vector<uint16_t> times{2000, 2000, 2000, 2000, 2000, 2000};
 
-    // Convert shared pointer from servoEvent(struct) to shared pointer from
-    // Event (struct):
-    shared_ptr<EventServo> servoEvent(
-        new EventServo(SERVO, servos, degrees, times));
+      // Convert shared pointer from servoEvent(struct) to shared pointer from
+      // Event (struct):
+      shared_ptr<EventServo> servoEvent(
+          new EventServo(SERVO, servos, degrees, times));
 
-    // Add to queue:
-    eventsQueue.push(dynamic_pointer_cast<Event>(servoEvent));
-    break;
-  case EMERGENCY_STOP:
-    RCLCPP(this->get_logger(), "Going into EMERGENCY_STOP state...");
+      // Add to queue:
+      eventsQueue_.push(dynamic_pointer_cast<Event>(servoEvent));
+      break;
+    }
+    case EMERGENCY_STOP:
+    {
+      RCLCPP_INFO(this->get_logger(), "Going into EMERGENCY_STOP state...");
 
-    // Engage the emergency stop:
-    servoDriver.engageEmergencyStop();
+      // Engage the emergency stop:
+      servoDriver_.engageEmergencyStop();
 
-    // Clear the queue by replacing it with an empty queue (most efficient way
-    // according to StackOverflow):
-    queue<shared_ptr<Event>> empty;
-    swap(eventsQueue, empty);
-    break;
+      // Clear the queue by replacing it with an empty queue (most efficient way
+      // according to StackOverflow):
+      queue<shared_ptr<Event>> empty;
+      swap(eventsQueue_, empty);
+      break;
+    }
   }
 }
 
 void RobotArmDriver::runQueue()
 {
-  if (!eventsQueue.empty())
+  if (!eventsQueue_.empty())
   {
     // Before running the queue, check if all the servos are ready to move.
     // We do this by checking if the servo with the highest activation timer
     // (last servo to move) already done moving.
 
     uint64_t curTime =
-        duration_cast<milliseconds>(system_clock::now().time_since_epoch())
+        chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch())
             .count();
     uint64_t lastMovingServoFinishingTime =
-        *max_element(servoActivationTimes.begin(), servoActivationTimes.end());
+        *max_element(servoActivationTimes_.begin(), servoActivationTimes_.end());
     if (curTime > lastMovingServoFinishingTime)
     {
       // The last moving servo is done moving, so we can run the queue:
 
       // Get the first event in the queue:
-      shared_ptr<Event> event = eventsQueue.front();
+      shared_ptr<Event> event = eventsQueue_.front();
 
-      switch (event->type)
+      switch (event->eventType)
       {
       case SERVO:
       {
@@ -229,12 +220,12 @@ void RobotArmDriver::runQueue()
         // Retrieve the future positions from each servo to determine if it is
         // safe to move:
         int16_t shoulderPos =
-            servoDriver.getServoDegrees(ServoDriver::Servos::SHOULDER);
+            servoDriver_.getServoDegrees(Servos::SHOULDER);
         int16_t elbowPos =
-            servoDriver.getServoDegrees(ServoDriver::Servos::ELBOW);
+            servoDriver_.getServoDegrees(Servos::ELBOW);
         int16_t wristPos =
-            servoDriver.getServoDegrees(ServoDriver::Servos::WRIST);
-        for (int i = 0; i < servoEvent->servos.size(); i++)
+            servoDriver_.getServoDegrees(Servos::WRIST);
+        for (size_t i = 0; i < servoEvent->servos.size(); i++)
         {
           switch (servoEvent->servos[i])
           {
@@ -259,20 +250,20 @@ void RobotArmDriver::runQueue()
             // Calculate the minimum time to move the servo:
             uint64_t minTime = calcServoDuration(
                 servoEvent->degrees[i],
-                servoDriver.getServoDegree(
-                    (ServoDriver::servos)servoEvent->servos[i]));
+                servoDriver_.getServoDegrees(
+                    (Servos)servoEvent->servos[i]));
             if (servoEvent->times[i] > minTime)
             {
               minTime = servoEvent->times[i];
             }
-            servoTimers[i] = current_ms + minTime;
+            servoActivationTimes_[i] = curTime + minTime;
             RCLCPP_INFO(this->get_logger(),
                         "Moving servo: " + to_string(servoEvent->servos[i]) +
                             " to " + to_string(servoEvent->degrees[i]) +
                             " degrees in " + to_string(minTime) +
                             " milliseconds.");
-            servoDriver.setServoDegree(
-                (ServoDriver::servos)servoEvent->servos[i],
+            servoDriver_.setServoDegrees(
+                (Servos)servoEvent->servos[i],
                 servoEvent->degrees[i], minTime);
           }
         }
@@ -288,12 +279,12 @@ void RobotArmDriver::runQueue()
       {
         shared_ptr<EventState> stateEvent =
             dynamic_pointer_cast<EventState>(event);
-        curState = stateEvent->state;
+        curState_ = stateEvent->desiredState;
         break;
       }
 
         // Remove the handled event from the queue:
-        eventQueue.pop();
+        eventsQueue_.pop();
       }
     }
     else

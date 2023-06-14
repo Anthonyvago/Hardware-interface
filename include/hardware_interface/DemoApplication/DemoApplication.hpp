@@ -12,11 +12,11 @@
 #ifndef DEMOAPPLICATION_HPP
 #define DEMOAPPLICATION_HPP
 
-#include <Robot_arm_HLD/RobotArmStates.hpp>
+#include <Robot_arm_HLD/RobotArmDriver.hpp>
 #include <hardware_interface/msg/set_servos.hpp>
 #include <hardware_interface/msg/set_robot_arm_state.hpp>
-#include <hardware_interface/srv/get_servos.hpp>
-#include <hardware_interface/srv/get_robot_arm_state.hpp>
+// #include <hardware_interface/srv/get_servos.hpp>
+// #include <hardware_interface/srv/get_robot_arm_state.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 using namespace std;
@@ -57,7 +57,7 @@ public:
 private:
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Publisher<hardware_interface::msg::SetServos>::SharedPtr servoPub_;
-  rclcpp::Publisher<hardware_interface::msg::SetState>::SharedPtr statePub_;
+  rclcpp::Publisher<hardware_interface::msg::SetRobotArmState>::SharedPtr statePub_;
 };
 
 #endif

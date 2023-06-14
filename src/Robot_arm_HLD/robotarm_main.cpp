@@ -10,7 +10,7 @@
  */
 
 // All includes are in the following include:
-#include <Robot_arm_driver/RobotArmDriver.hpp>
+#include <Robot_arm_HLD/RobotArmDriver.hpp>
 
 int main(int argc, char **argv)
 {

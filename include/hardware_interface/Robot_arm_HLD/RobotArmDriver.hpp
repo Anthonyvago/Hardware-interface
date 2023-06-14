@@ -12,11 +12,11 @@
 #ifndef ROBOTARMDRIVER_HPP
 #define ROBOTARMDRIVER_HPP
 
-#include <ServoDriver.hpp/ServoDriver.hpp>
+#include <Servo_LLD/ServoDriver.hpp>
 #include <hardware_interface/msg/set_servos.hpp>
 #include <hardware_interface/msg/set_robot_arm_state.hpp>
-#include <hardware_interface/srv/get_servos.hpp>
-#include <hardware_interface/srv/get_robot_arm_state.hpp>
+// #include <hardware_interface/srv/get_servos.hpp>
+// #include <hardware_interface/srv/get_robot_arm_state.hpp>
 
 #include <iostream>
 #include <rclcpp/rclcpp.hpp>
@@ -36,11 +36,12 @@ using namespace std;
 typedef enum { STATE, SERVO } EventType;
 
 // General event structure:
-typedef struct {
+struct Event {
   EventType eventType;
   Event(EventType event) : eventType(event) {}
   virtual EventType getEventType() { return eventType; };
-} Event;
+  virtual ~Event() = default;
+};
 
 // One event structure for a servo event:
 struct EventServo : public Event {
@@ -49,22 +50,26 @@ struct EventServo : public Event {
   vector<uint16_t> servos;
   vector<int16_t> degrees;
   vector<uint16_t> times;
+  virtual ~EventServo() = default;
 };
+
+// Robot arm states:
+enum RobotArmState : uint16_t {
+  READY = 0,
+  PARK = 1,
+  STRAIGHT_UP = 2,
+  EMERGENCY_STOP = 3
+} ;
 
 // One event structure for a state event:
 struct EventState : public Event {
   EventState(EventType eventType, RobotArmState state) : Event(eventType), desiredState(state) {}
   RobotArmState desiredState;
   EventType getEventType() { return Event::eventType; };
+  virtual ~EventState() = default;
 };
 
-// Robot arm states:
-typedef enum {
-  READY = 0,
-  PARK = 1,
-  STRAIGHT_UP = 2,
-  EMERGENCY_STOP = 3
-} RobotArmState;
+
 
 class RobotArmDriver : public rclcpp::Node {
 public:
@@ -84,7 +89,7 @@ public:
    * 
    * @param msg Received message from the topic.
    */
-  void setState(const hardware_interface::msg::setRobotArmState::SharedPtr msg);
+  void setRobotArmState(const hardware_interface::msg::SetRobotArmState::SharedPtr msg);
 
   /**
    * @brief Timer callback function.
@@ -95,11 +100,11 @@ public:
 private:
   rclcpp::TimerBase::SharedPtr timer_;
   rclcpp::Subscription<hardware_interface::msg::SetServos>::SharedPtr servoSub_;
-  rclcpp::Subscription<hardware_interface::msg::setRobotArmState>::SharedPtr stateSub_;
-  ServoDriver servoDriver;
-  queue<shared_ptr<Event>> eventsQueue;
-  RobotArmState curState;
-  vector<uint64_t> servoActivationTimes;
+  rclcpp::Subscription<hardware_interface::msg::SetRobotArmState>::SharedPtr stateSub_;
+  ServoDriver servoDriver_;
+  queue<shared_ptr<Event>> eventsQueue_;
+  RobotArmState curState_;
+  vector<uint64_t> servoActivationTimes_;
 };
 
 #endif

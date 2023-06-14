@@ -23,7 +23,7 @@ DemoApplication::DemoApplication() : Node("DemoApplication") {
                                    bind(&DemoApplication::timerCallback, this));
   servoPub_ = this->create_publisher<hardware_interface::msg::SetServos>(
       "RobotArmDriver", 10);
-  statePub_ = this->create_publisher<hardware_interface::msg::setRobotArmState>(
+  statePub_ = this->create_publisher<hardware_interface::msg::SetRobotArmState>(
       "RobotArmDriver", 10);
 }
 
@@ -43,6 +43,17 @@ vector<string> split(string s, string delimiter) {
   return res;
 }
 
+bool iequals(const string &a, const string &b)
+{
+  uint32_t sz = a.size();
+  if (b.size() != sz)
+    return false;
+  for (unsigned int i = 0; i < sz; ++i)
+    if (tolower(a[i]) != tolower(b[i]))
+      return false;
+  return true;
+}
+
 void DemoApplication::timerCallback() {
   string input = "";
   cout << "Input > ";
@@ -58,19 +69,15 @@ void DemoApplication::timerCallback() {
     return; // exit function
   }
 
-  if (strcmp(parsedInput[0], "SET") == 0 ||
-      strcmp(parsedInput[0], "set") == 0) {
-    if (strcmp(parsedInput[1], "SERVO") == 0 ||
-        strcmp(parsedInput[1], "servo") == 0) {
+  if ( iequals(parsedInput[0], "SET") ) {
+    if ( iequals(parsedInput[1], "SERVO") ) {
       vector<unsigned short> servos;
       vector<short> degrees;
       vector<unsigned short> times;
       for (size_t i = 2; i < parsedInput.size(); i += 3) {
         // quick check for possible crash:
         if (parsedInput.size() < i + 3) {
-          cout << "Cannot execute command because too little arguments "
-                  "are given!"
-               << endl;
+          cout << "Cannot execute command because too little arguments are given!" << endl;
           return; // exit this function
         }
 
@@ -80,19 +87,14 @@ void DemoApplication::timerCallback() {
       }
       setServoDegrees(servos, degrees, times);
     }
-  } else if (strcmp(parsedInput[1], "STATE") == 0 ||
-             strcmp(parsedInput[1], "state") == 0) {
-    if (strcmp(parsedInput[2], "READY") == 0 ||
-        strcmp(parsedInput[2], "ready") == 0) {
+  } else if (iequals(parsedInput[1], "STATE")) {
+    if (iequals(parsedInput[2], "READY")) {
       setRobotArmState(READY);
-    } else if (strcmp(parsedInput[2], "PARK") == 0 ||
-               strcmp(parsedInput[2], "park") == 0) {
+    } else if (iequals(parsedInput[2], "PARK")) {
       setRobotArmState(PARK);
-    } else if (strcmp(parsedInput[2], "STRAIGHT_UP") == 0 ||
-               strcmp(parsedInput[2], "straight_up") == 0) {
+    } else if (iequals(parsedInput[2], "STRAIGHT_UP")) {
       setRobotArmState(STRAIGHT_UP);
-    } else if (strcmp(parsedInput[2], "EMERGENCY_STOP") == 0 ||
-               strcmp(parsedInput[2], "emergency_stop") == 0) {
+    } else if (iequals(parsedInput[2], "EMERGENCY_STOP")) {
       setRobotArmState(EMERGENCY_STOP);
     } else {
       cout << "Sorry, I don't know this state" << endl;
@@ -120,7 +122,7 @@ void DemoApplication::setServoDegrees(const vector<unsigned short> &servos,
 }
 
 void DemoApplication::setRobotArmState(RobotArmState state) {
-  auto message = hardware_interface::msg::setRobotArmState();
+  auto message = hardware_interface::msg::SetRobotArmState();
   message.state = state;
   statePub_->publish(message);
 }

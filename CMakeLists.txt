@@ -20,7 +20,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SetRobotArmState.msg"
@@ -42,8 +42,8 @@ include_directories(include/${PROJECT_NAME}/)
 
 # add the ServoDriver library
 add_library(ServoDriver SHARED
-  src/Servo_driver/ServoDriver.cpp
-  src/Servo_driver/SerialServoCommunication.cpp)
+  src/Servo_LLD/ServoDriver.cpp
+  src/Servo_LLD/SerialServoCommunication.cpp)
 ament_export_targets(ServoDriver HAS_LIBRARY_TARGET)
 ament_export_dependencies(ServoDriver rclcpp std_msgs Boost)
 
@@ -67,7 +67,7 @@ add_executable(Demo src/DemoApplication/demo_main.cpp src/DemoApplication/DemoAp
 ament_target_dependencies(Demo rclcpp std_msgs)
 
 add_executable(Main_RobotArmDriver src/Robot_arm_HLD/robotarm_main.cpp src/Robot_arm_HLD/RobotArmDriver.cpp)
-ament_target_dependencies(main_driver rclcpp std_msgs)
+ament_target_dependencies(Main_RobotArmDriver rclcpp std_msgs)
 
 target_link_libraries(Main_RobotArmDriver ServoDriver)
 
