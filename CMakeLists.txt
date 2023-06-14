@@ -63,21 +63,21 @@ install(
 )
 
 # add the executable
-add_executable(demo src/DemoApplication/demo_main.cpp src/DemoApplication/DemoApplication.cpp)
-ament_target_dependencies(demo rclcpp std_msgs)
+add_executable(Demo src/DemoApplication/demo_main.cpp src/DemoApplication/DemoApplication.cpp)
+ament_target_dependencies(Demo rclcpp std_msgs)
 
-add_executable(main_driver src/Robot_arm_driver/main.cpp src/Robot_arm_driver/RobotArmDriver.cpp)
+add_executable(Main_RobotArmDriver src/Robot_arm_HLD/robotarm_main.cpp src/Robot_arm_HLD/RobotArmDriver.cpp)
 ament_target_dependencies(main_driver rclcpp std_msgs)
 
-target_link_libraries(main_driver ServoDriver)
+target_link_libraries(Main_RobotArmDriver ServoDriver)
 
 # Making ROS 2 able to find our package:
-install(TARGETS main_driver DESTINATION lib/${PROJECT_NAME})
-install(TARGETS demo DESTINATION lib/${PROJECT_NAME})
+install(TARGETS Main_RobotArmDriver DESTINATION lib/${PROJECT_NAME})
+install(TARGETS Demo DESTINATION lib/${PROJECT_NAME})
 
 
 
-rosidl_target_interfaces(main_driver ${PROJECT_NAME} "rosidl_typesupport_cpp")
-rosidl_target_interfaces(demo ${PROJECT_NAME} "rosidl_typesupport_cpp")
+rosidl_target_interfaces(Main_RobotArmDriver ${PROJECT_NAME} "rosidl_typesupport_cpp")
+rosidl_target_interfaces(Demo ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 ament_package()
