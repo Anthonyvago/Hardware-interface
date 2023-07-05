@@ -31,6 +31,8 @@ enum Servos : int16_t {
 class ServoDriver {
 public:
   ServoDriver(const string &pathToDevice);
+  
+  ServoDriver();
 
   ~ServoDriver() = default;
 

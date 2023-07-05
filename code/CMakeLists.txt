@@ -23,8 +23,8 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "msg/SetRobotArmState.msg"
-  "msg/SetServos.msg"
+  "msg/Setrobotarmstate.msg"
+  "msg/Setservos.msg"
  )
 
 if(BUILD_TESTING)
@@ -74,8 +74,6 @@ target_link_libraries(Main_RobotArmDriver ServoDriver)
 # Making ROS 2 able to find our package:
 install(TARGETS Main_RobotArmDriver DESTINATION lib/${PROJECT_NAME})
 install(TARGETS Demo DESTINATION lib/${PROJECT_NAME})
-
-
 
 rosidl_target_interfaces(Main_RobotArmDriver ${PROJECT_NAME} "rosidl_typesupport_cpp")
 rosidl_target_interfaces(Demo ${PROJECT_NAME} "rosidl_typesupport_cpp")

@@ -9,13 +9,15 @@
  *
  */
 
-#include "Robot_arm_HLD/RobotArmDriver.hpp"
-
-#include "Servo_LLD/ServoDriver.hpp"
 #include <rclcpp/rclcpp.hpp>
+
+#include "Robot_arm_HLD/RobotArmDriver.hpp"
+#include "Servo_LLD/ServoDriver.hpp"
 
 using namespace std;
 
+// "servoDriver_()" must be
+// "servoDriver_("/dev/ttyUSB0")" in the future
 RobotArmDriver::RobotArmDriver()
     : Node("RobotArmDriver"), servoDriver_("/dev/ttyUSB0"), curState_(PARK),
       servoActivationTimes_(servoDriver_.getServoCount(), 0)
@@ -23,11 +25,11 @@ RobotArmDriver::RobotArmDriver()
 
   timer_ =
       this->create_wall_timer(100ms, bind(&RobotArmDriver::runQueue, this));
-  servoSub_ = this->create_subscription<hardware_interface::msg::SetServos>(
-      "RobotArmDriver", 10, bind(&RobotArmDriver::setServos, this, placeholders::_1));
+  servoSub_ = this->create_subscription<hardware_interface::msg::Setservos>(
+      "RobotArmDriverServos", 10, bind(&RobotArmDriver::setServos, this, placeholders::_1));
   stateSub_ =
-      this->create_subscription<hardware_interface::msg::SetRobotArmState>(
-          "RobotArmDriver", 10, bind(&RobotArmDriver::setRobotArmState, this, placeholders::_1));
+      this->create_subscription<hardware_interface::msg::Setrobotarmstate>(
+          "RobotArmDriverState", 10, bind(&RobotArmDriver::setRobotArmState, this, placeholders::_1));
 
   // Set the initial robot arm position:
   vector<uint16_t> servos = {0, 1, 2, 3, 4, 5};
@@ -75,7 +77,7 @@ bool isSafe(float shoulderPos, float elbowPos, float wristPos)
 }
 
 void RobotArmDriver::setServos(
-    const hardware_interface::msg::SetServos::SharedPtr msg)
+    const hardware_interface::msg::Setservos::SharedPtr msg)
 {
   if (curState_ == EMERGENCY_STOP)
   {
@@ -96,7 +98,7 @@ void RobotArmDriver::setServos(
 }
 
 void RobotArmDriver::setRobotArmState(
-    const hardware_interface::msg::SetRobotArmState::SharedPtr msg)
+    const hardware_interface::msg::Setrobotarmstate::SharedPtr msg)
 {
   RobotArmState newState = static_cast<RobotArmState>(msg->state);
 
@@ -257,11 +259,11 @@ void RobotArmDriver::runQueue()
               minTime = servoEvent->times[i];
             }
             servoActivationTimes_[i] = curTime + minTime;
-            RCLCPP_INFO(this->get_logger(),
-                        "Moving servo: " + to_string(servoEvent->servos[i]) +
+            string output = "Moving servo: " + to_string(servoEvent->servos[i]) +
                             " to " + to_string(servoEvent->degrees[i]) +
                             " degrees in " + to_string(minTime) +
-                            " milliseconds.");
+                            " milliseconds.";
+            RCLCPP_INFO(this->get_logger(), output.c_str());
             servoDriver_.setServoDegrees(
                 (Servos)servoEvent->servos[i],
                 servoEvent->degrees[i], minTime);
@@ -291,10 +293,9 @@ void RobotArmDriver::runQueue()
     {
       // The last moving servo is not done moving, so we wait until it is done
       // moving.
-      RCLCPP_INFO(
-          this->get_logger(),
-          "Waiting " + to_string(lastMovingServoFinishingTime - curTime) +
-              "  milliseconds for the last moving servo to finish moving...");
+      string output = "Waiting " + to_string(lastMovingServoFinishingTime - curTime) +
+              "  milliseconds for the last moving servo to finish moving...";
+      RCLCPP_INFO(this->get_logger(), output.c_str());
     }
   }
 }

@@ -53,3 +53,8 @@ Wanneer de package is gecompileerd, kun je hem uitvoeren met het volgende comman
 en:
 > ros2 run hardware_interface Demo
 
+## 4. USB apparaat vinden
+
+Opsommen van alle USB apparaten:
+> ls /dev | grep tty(USB)
+

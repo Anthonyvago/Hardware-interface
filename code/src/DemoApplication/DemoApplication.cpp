@@ -21,10 +21,10 @@ using namespace std;
 DemoApplication::DemoApplication() : Node("DemoApplication") {
   timer_ = this->create_wall_timer(chrono::milliseconds(100),
                                    bind(&DemoApplication::timerCallback, this));
-  servoPub_ = this->create_publisher<hardware_interface::msg::SetServos>(
-      "RobotArmDriver", 10);
-  statePub_ = this->create_publisher<hardware_interface::msg::SetRobotArmState>(
-      "RobotArmDriver", 10);
+  servoPub_ = this->create_publisher<hardware_interface::msg::Setservos>(
+      "RobotArmDriverServos", 10);
+  statePub_ = this->create_publisher<hardware_interface::msg::Setrobotarmstate>(
+      "RobotArmDriverState", 10);
 }
 
 // Not sure if this is the best way to split a string, but it works for now.
@@ -114,7 +114,7 @@ void DemoApplication::timerCallback() {
 void DemoApplication::setServoDegrees(const vector<unsigned short> &servos,
                                       const vector<short> &degrees,
                                       const vector<unsigned short> &times) {
-  auto message = hardware_interface::msg::SetServos();
+  auto message = hardware_interface::msg::Setservos();
   message.degrees = degrees;
   message.servos = servos;
   message.times = times;
@@ -122,7 +122,7 @@ void DemoApplication::setServoDegrees(const vector<unsigned short> &servos,
 }
 
 void DemoApplication::setRobotArmState(RobotArmState state) {
-  auto message = hardware_interface::msg::SetRobotArmState();
+  auto message = hardware_interface::msg::Setrobotarmstate();
   message.state = state;
   statePub_->publish(message);
 }

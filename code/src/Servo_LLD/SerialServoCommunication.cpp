@@ -26,6 +26,11 @@ SerialServoCommunication::SerialServoCommunication(const string &pathToDevice)
       boost::asio::serial_port::character_size(8)));
 }
 
+SerialServoCommunication::SerialServoCommunication()
+: ioService_(), serial_(ioService_)
+{
+}
+
 void SerialServoCommunication::sendSerialMsg(const string &serialMsg) {
   boost::asio::streambuf streamBuff;
   ostringstream ss;

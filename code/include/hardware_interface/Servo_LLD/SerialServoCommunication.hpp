@@ -17,6 +17,8 @@ using namespace std;
 class SerialServoCommunication {
 public:
   SerialServoCommunication(const string &pathToDevice);
+  
+  SerialServoCommunication();
 
   ~SerialServoCommunication() = default;
 

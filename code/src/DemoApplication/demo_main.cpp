@@ -9,8 +9,8 @@
  * 
  */
 
-#include <DemoApplication/DemoApplication.hpp>
 #include <iostream>
+#include <DemoApplication/DemoApplication.hpp>
 
 int main(int argc, char **argv) {
   rclcpp::init(argc, argv);

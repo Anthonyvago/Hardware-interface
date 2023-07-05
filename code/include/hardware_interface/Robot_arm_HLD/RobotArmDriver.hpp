@@ -12,14 +12,12 @@
 #ifndef ROBOTARMDRIVER_HPP
 #define ROBOTARMDRIVER_HPP
 
+#include <rclcpp/rclcpp.hpp>
 #include <Servo_LLD/ServoDriver.hpp>
-#include <hardware_interface/msg/set_servos.hpp>
-#include <hardware_interface/msg/set_robot_arm_state.hpp>
-// #include <hardware_interface/srv/get_servos.hpp>
-// #include <hardware_interface/srv/get_robot_arm_state.hpp>
+#include <hardware_interface/msg/setservos.hpp>
+#include <hardware_interface/msg/setrobotarmstate.hpp>
 
 #include <iostream>
-#include <rclcpp/rclcpp.hpp>
 #include <vector>
 #include <queue>
 #include <chrono>
@@ -82,14 +80,14 @@ public:
    * 
    * @param msg Received message from the topic.
    */
-  void setServos(const hardware_interface::msg::SetServos::SharedPtr msg);
+  void setServos(const hardware_interface::msg::Setservos::SharedPtr msg);
 
   /**
    * @brief Adds state event to the queue.
    * 
    * @param msg Received message from the topic.
    */
-  void setRobotArmState(const hardware_interface::msg::SetRobotArmState::SharedPtr msg);
+  void setRobotArmState(const hardware_interface::msg::Setrobotarmstate::SharedPtr msg);
 
   /**
    * @brief Timer callback function.
@@ -99,8 +97,8 @@ public:
 
 private:
   rclcpp::TimerBase::SharedPtr timer_;
-  rclcpp::Subscription<hardware_interface::msg::SetServos>::SharedPtr servoSub_;
-  rclcpp::Subscription<hardware_interface::msg::SetRobotArmState>::SharedPtr stateSub_;
+  rclcpp::Subscription<hardware_interface::msg::Setservos>::SharedPtr servoSub_;
+  rclcpp::Subscription<hardware_interface::msg::Setrobotarmstate>::SharedPtr stateSub_;
   ServoDriver servoDriver_;
   queue<shared_ptr<Event>> eventsQueue_;
   RobotArmState curState_;
