@@ -64,24 +64,24 @@ float toDegrees(float radians)
 
 bool isSafe(float shoulderPos, float elbowPos, float wristPos)
 {
-  // float lijn_G = 85.725f;
-  // float lijn_F = 107.95f;
-  // float lijn_P = 95.25f;
-  // float theta_1 = shoulderPos;
-  // float theta_2 = elbowPos;
-  // float theta_3 = wristPos;
-  // float hoek_A2 = 90 - theta_1;
-  // float hoek_B3 = 180 - hoek_A2;
-  // float hoek_B2 = 180 - theta_2;
-  // float lijn_C = lijn_F * cosf(toRadians(hoek_B3 + hoek_B2));
-  // float hoek_C1 = toDegrees(asinf(lijn_C / lijn_F));
-  // float hoek_C3 = 180 - 90 - hoek_C1 - theta_3;
-  // float result = ((lijn_P * tanf(toRadians(hoek_A2))) -
-  //                 (lijn_F * cosf(toRadians(hoek_B3 + hoek_B2)))) -
-  //                (lijn_G * cosf(toRadians(hoek_C3)));
-  // result = abs(result);
-  // return result > 0.0f;
-  return true;
+  float lijn_G = 85.725f;
+  float lijn_F = 107.95f;
+  float lijn_P = 95.25f;
+  float theta_1 = shoulderPos;
+  float theta_2 = elbowPos;
+  float theta_3 = wristPos;
+  float hoek_A2 = 90 - theta_1;
+  float hoek_B3 = 180 - hoek_A2;
+  float hoek_B2 = 180 - theta_2;
+  float lijn_C = lijn_F * cosf(toRadians(hoek_B3 + hoek_B2));
+  float hoek_C1 = toDegrees(asinf(lijn_C / lijn_F));
+  float hoek_C3 = 180 - 90 - hoek_C1 - theta_3;
+  float result = ((lijn_P * tanf(toRadians(hoek_A2))) -
+                  (lijn_F * cosf(toRadians(hoek_B3 + hoek_B2)))) -
+                 (lijn_G * cosf(toRadians(hoek_C3)));
+  result = abs(result);
+  return result > 0.0f;
+  // return true;
 }
 
 void RobotArmDriver::setServos(const hardware_interface::msg::Setservos::SharedPtr msg)
