@@ -84,7 +84,6 @@ int16_t ServoDriver::PWMtoDegree(Servos servo, int16_t pwm) {
 void ServoDriver::setServoDegrees(Servos servo, int16_t degree,
                                  int16_t time) {
   int speed = 0;
-  cout << "Setting servo degree..." << endl;
   uint16_t defaultSpeed = 1000;
   ostringstream servoMSG;
   int16_t pwm = degreeToPWM(servo, degree);

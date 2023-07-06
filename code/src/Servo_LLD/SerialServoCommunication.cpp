@@ -15,15 +15,11 @@ using namespace std;
 
 SerialServoCommunication::SerialServoCommunication(const string &pathToDevice)
     : ioService_(), serial_(ioService_, pathToDevice) {
-  serial_.set_option(boost::asio::serial_port_base::baud_rate(9600));
-  serial_.set_option(boost::asio::serial_port::flow_control(
-      boost::asio::serial_port::flow_control::none));
-  serial_.set_option(
-      boost::asio::serial_port::parity(boost::asio::serial_port::parity::none));
-  serial_.set_option(boost::asio::serial_port::stop_bits(
-      boost::asio::serial_port::stop_bits::one));
-  serial_.set_option(boost::asio::serial_port::character_size(
-      boost::asio::serial_port::character_size(8)));
+  serial_.set_option(boost::asio::serial_port_base::baud_rate(115200));
+  serial_.set_option(boost::asio::serial_port::flow_control(boost::asio::serial_port::flow_control::none));
+  serial_.set_option(boost::asio::serial_port::parity(boost::asio::serial_port::parity::none));
+  serial_.set_option(boost::asio::serial_port::stop_bits(boost::asio::serial_port::stop_bits::one));
+  serial_.set_option(boost::asio::serial_port::character_size(boost::asio::serial_port::character_size(8)));
 }
 
 SerialServoCommunication::SerialServoCommunication()

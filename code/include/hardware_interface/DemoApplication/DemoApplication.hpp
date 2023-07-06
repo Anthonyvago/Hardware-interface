@@ -29,6 +29,12 @@ public:
   DemoApplication();
 
   /**
+   * @brief This method prints the output for an unknown command.
+   * 
+   */
+  void printOutput_UnknownInput();
+
+  /**
    * @brief This timer callback is called every 100ms and interprets commands.
    * @return (void)
    */

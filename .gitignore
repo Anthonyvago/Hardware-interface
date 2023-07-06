@@ -4,3 +4,7 @@ install
 install/
 log
 log/
+s
+.gitignore
+.vscode/
+```

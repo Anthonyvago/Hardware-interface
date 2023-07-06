@@ -33,7 +33,7 @@ RobotArmDriver::RobotArmDriver()
 
   // Set the initial robot arm position:
   vector<uint16_t> servos = {0, 1, 2, 3, 4, 5};
-  vector<int16_t> degrees = {0, -30, 135, 42, 0, 0};
+  vector<int16_t> degrees = {0, -30, 135, 90, 0, 0};
   vector<uint16_t> times = {2000, 2000, 2000, 2000, 2000, 2000};
 
   // Convert shared pointer from servoEvent(struct) to shared pointer from Event
@@ -57,23 +57,24 @@ float toDegrees(float radians) { return radians * (180.0f / M_PI); }
 
 bool isSafe(float shoulderPos, float elbowPos, float wristPos)
 {
-  float lijn_G = 85.725f;
-  float lijn_F = 107.95f;
-  float lijn_P = 95.25f;
-  float theta_1 = shoulderPos;
-  float theta_2 = elbowPos;
-  float theta_3 = wristPos;
-  float hoek_A2 = 90 - theta_1;
-  float hoek_B3 = 180 - hoek_A2;
-  float hoek_B2 = 180 - theta_2;
-  float lijn_C = lijn_F * cosf(toRadians(hoek_B3 + hoek_B2));
-  float hoek_C1 = toDegrees(asinf(lijn_C / lijn_F));
-  float hoek_C3 = 180 - 90 - hoek_C1 - theta_3;
-  float result = ((lijn_P * tanf(toRadians(hoek_A2))) -
-                  (lijn_F * cosf(toRadians(hoek_B3 + hoek_B2)))) -
-                 (lijn_G * cosf(toRadians(hoek_C3)));
-  result = abs(result);
-  return result > 0.0f;
+  // float lijn_G = 85.725f;
+  // float lijn_F = 107.95f;
+  // float lijn_P = 95.25f;
+  // float theta_1 = shoulderPos;
+  // float theta_2 = elbowPos;
+  // float theta_3 = wristPos;
+  // float hoek_A2 = 90 - theta_1;
+  // float hoek_B3 = 180 - hoek_A2;
+  // float hoek_B2 = 180 - theta_2;
+  // float lijn_C = lijn_F * cosf(toRadians(hoek_B3 + hoek_B2));
+  // float hoek_C1 = toDegrees(asinf(lijn_C / lijn_F));
+  // float hoek_C3 = 180 - 90 - hoek_C1 - theta_3;
+  // float result = ((lijn_P * tanf(toRadians(hoek_A2))) -
+  //                 (lijn_F * cosf(toRadians(hoek_B3 + hoek_B2)))) -
+  //                (lijn_G * cosf(toRadians(hoek_C3)));
+  // result = abs(result);
+  // return result > 0.0f;
+  return true;
 }
 
 void RobotArmDriver::setServos(
@@ -103,6 +104,7 @@ void RobotArmDriver::setRobotArmState(
   RobotArmState newState = static_cast<RobotArmState>(msg->state);
 
   // Check if the "old" state was the emegency stop:
+  RCLCPP_INFO(this->get_logger(), "Current state: %d", curState_);
   if (curState_ == EMERGENCY_STOP)
   {
     // Check if the new state is the emegency stop, so robot arm is still in the
@@ -128,7 +130,7 @@ void RobotArmDriver::setRobotArmState(
 
       // Set READY positions:
       vector<uint16_t> servos{0, 1, 2, 3, 4, 5};
-      vector<int16_t> degrees{0, -30, 135, 0, 0, 0};
+      vector<int16_t> degrees{0, -30, 100, 20, 0, 0};
       vector<uint16_t> times{2000, 2000, 2000, 2000, 2000, 2000};
 
       // Convert shared pointer from servoEvent(struct) to shared pointer from
@@ -137,6 +139,7 @@ void RobotArmDriver::setRobotArmState(
 
       // Add to queue:
       eventsQueue_.push(dynamic_pointer_cast<Event>(servoEvent));
+      curState_ = READY;
       break;
     }
     case PARK:
@@ -145,7 +148,7 @@ void RobotArmDriver::setRobotArmState(
 
       // Set PARK positions:
       vector<uint16_t> servos{0, 1, 2, 3, 4, 5};
-      vector<int16_t> degrees{0, -30, 135, 42, 0, 0};
+      vector<int16_t> degrees{0, -30, 135, 90, 0, 0};
       vector<uint16_t> times{2000, 2000, 2000, 2000, 2000, 2000};
 
       // Convert shared pointer from servoEvent(struct) to shared pointer from
@@ -155,6 +158,7 @@ void RobotArmDriver::setRobotArmState(
 
       // Add to queue:
       eventsQueue_.push(dynamic_pointer_cast<Event>(servoEvent));
+      curState_ = PARK;
       break;
     }
     case STRAIGHT_UP:
@@ -173,6 +177,7 @@ void RobotArmDriver::setRobotArmState(
 
       // Add to queue:
       eventsQueue_.push(dynamic_pointer_cast<Event>(servoEvent));
+      curState_ = STRAIGHT_UP;
       break;
     }
     case EMERGENCY_STOP:
@@ -186,6 +191,7 @@ void RobotArmDriver::setRobotArmState(
       // according to StackOverflow):
       queue<shared_ptr<Event>> empty;
       swap(eventsQueue_, empty);
+      curState_ = EMERGENCY_STOP;
       break;
     }
   }
@@ -202,8 +208,7 @@ void RobotArmDriver::runQueue()
     uint64_t curTime =
         chrono::duration_cast<chrono::milliseconds>(chrono::system_clock::now().time_since_epoch())
             .count();
-    uint64_t lastMovingServoFinishingTime =
-        *max_element(servoActivationTimes_.begin(), servoActivationTimes_.end());
+    uint64_t lastMovingServoFinishingTime = *max_element(servoActivationTimes_.begin(), servoActivationTimes_.end());
     if (curTime > lastMovingServoFinishingTime)
     {
       // The last moving servo is done moving, so we can run the queue:
@@ -284,10 +289,10 @@ void RobotArmDriver::runQueue()
         curState_ = stateEvent->desiredState;
         break;
       }
-
-        // Remove the handled event from the queue:
-        eventsQueue_.pop();
       }
+
+      // Remove the handled event from the queue:
+      eventsQueue_.pop();
     }
     else
     {
